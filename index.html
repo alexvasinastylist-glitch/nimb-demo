@@ -29,7 +29,7 @@
   .shell{display:grid;grid-template-columns:290px 1fr;max-width:1200px;margin:0 auto}
 
   /* ---------- RAIL ---------- */
-  .rail{align-self:start;position:sticky;top:0;padding:28px 24px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface)}
+  .rail{align-self:start;padding:28px 24px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface)}
   .brandrow{display:flex;align-items:center;gap:11px}
   .rail__logo{width:42px;height:42px;border-radius:10px;object-fit:contain;flex:none}
   .rail__brand{font-family:var(--display);font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1}
@@ -674,8 +674,7 @@
     try{
       if(location.hash!=='#step-'+(cur+1)) history.replaceState(null,'','#step-'+(cur+1));
     }catch(e){}
-    // авто-высота: сообщаем родителю новую высоту и просим прокрутку к началу
-    sendHeight();
+    // на смене шага просим родителя (Тильду) прокрутить к началу демонстрации
     try{ parent.postMessage({nimbScrollTo:0}, '*'); }catch(e){}
     if(window.self===window.top && window.scrollY) window.scrollTo(0,0);
   }
@@ -729,19 +728,36 @@
   // (данные падают в Тильду → Bitrix). Кнопка ниже выбивает наружу на страницу анкеты.
   var toAnketa=document.getElementById('toAnketa');
   if(toAnketa) toAnketa.addEventListener('click',function(){ navBtns[7].classList.add('done'); });
-
-  // ---- авто-высота под родителя (тот же протокол, что у партнёрского лендинга) ----
+})();
+</script>
+<script>
+/* авто-высота для встраивания через iframe (Tilda) — тот же скрипт, что на партнёрском лендинге */
+(function(){
+  if (window.self !== window.top) {
+    var st=document.createElement('style');
+    st.textContent='html,body{overflow:hidden !important;}';
+    document.head.appendChild(st);
+    document.addEventListener('click', function(e){
+      var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+      if (!a) return;
+      var href = a.getAttribute('href');
+      e.preventDefault();
+      var offset = 0;
+      if (href.length > 1) {
+        var el = document.getElementById(href.slice(1));
+        if (el) offset = el.getBoundingClientRect().top + (window.pageYOffset||0);
+      }
+      parent.postMessage({nimbScrollTo: offset}, '*');
+    });
+  }
   function sendHeight(){
-    var h=Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-    try{ parent.postMessage({nimbLpHeight:h}, '*'); }catch(e){}
+    var hgt = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    parent.postMessage({nimbLpHeight: hgt}, '*');
   }
   window.addEventListener('load', sendHeight);
   window.addEventListener('resize', sendHeight);
-  // во встройке (iframe) прячем собственную прокрутку; standalone — оставляем рабочей
-  if(window.self!==window.top){
-    document.documentElement.style.overflow='hidden';
-    document.body.style.overflow='hidden';
-  }
+  if (window.ResizeObserver){ new ResizeObserver(sendHeight).observe(document.body); }
+  setTimeout(sendHeight, 800); setTimeout(sendHeight, 2000);
 })();
 </script>
 </body>
