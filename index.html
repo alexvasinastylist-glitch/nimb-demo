@@ -22,14 +22,14 @@
     --mono:'JetBrains Mono',ui-monospace,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
-  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.55;font-size:17px;-webkit-font-smoothing:antialiased;overflow:hidden}
+  html,body{margin:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.55;font-size:17px;-webkit-font-smoothing:antialiased}
   ::selection{background:var(--brand);color:#fff}
 
-  .shell{display:grid;grid-template-columns:290px 1fr;max-width:1200px;margin:0 auto;height:100%}
+  .shell{display:grid;grid-template-columns:290px 1fr;max-width:1200px;margin:0 auto}
 
   /* ---------- RAIL ---------- */
-  .rail{height:100%;padding:28px 24px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface)}
+  .rail{align-self:start;position:sticky;top:0;padding:28px 24px;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface)}
   .brandrow{display:flex;align-items:center;gap:11px}
   .rail__logo{width:42px;height:42px;border-radius:10px;object-fit:contain;flex:none}
   .rail__brand{font-family:var(--display);font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1}
@@ -64,7 +64,7 @@
   .mtop .prog__bar{border-radius:0;height:3px;margin:0 -20px}
 
   /* ---------- STEPS ---------- */
-  main{min-width:0;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:auto}
+  main{min-width:0}
   .step{display:none;padding:56px 56px 90px;animation:fade .35s ease}
   .step.active{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -645,9 +645,8 @@
       <div class="callout blue">Заполните короткую анкету о себе — это займёт минуту. Сразу после неё вы попадёте в закрытый чат амбассадоров и сможете начинать зарабатывать с нами.</div>
       <div class="stepnav">
         <button class="btn btn-back" data-back>← Назад</button>
-        <!-- TODO: заменить href на адрес страницы анкеты (Форма 2) на Тильде.
-             target="_top" обязателен: демонстрация внутри iframe. -->
-        <a class="btn btn-next" href="#ANKETA" target="_top" id="toAnketa">Заполнить анкету →</a>
+        <!-- Кнопка ведёт на страницу анкеты. target="_top" выбивает наружу из iframe. -->
+        <a class="btn btn-next" href="https://school.nimb.digital/anketa_partner" target="_top" id="toAnketa">Заполнить анкету →</a>
       </div>
     </div>
   </section>
@@ -675,11 +674,10 @@
     try{
       if(location.hash!=='#step-'+(cur+1)) history.replaceState(null,'','#step-'+(cur+1));
     }catch(e){}
-    // всегда открываем шаг с начала
-    var sc=document.getElementById('scroller');
-    if(sc) sc.scrollTop=0;
-    if(window.scrollY) window.scrollTo(0,0);
-    try{ if(window.parent&&window.parent!==window) window.parent.scrollTo(0,0); }catch(e){}
+    // авто-высота: сообщаем родителю новую высоту и просим прокрутку к началу
+    sendHeight();
+    try{ parent.postMessage({nimbScrollTo:0}, '*'); }catch(e){}
+    if(window.self===window.top && window.scrollY) window.scrollTo(0,0);
   }
   function go(i){
     if(i<0||i>=total) return;
@@ -731,6 +729,19 @@
   // (данные падают в Тильду → Bitrix). Кнопка ниже выбивает наружу на страницу анкеты.
   var toAnketa=document.getElementById('toAnketa');
   if(toAnketa) toAnketa.addEventListener('click',function(){ navBtns[7].classList.add('done'); });
+
+  // ---- авто-высота под родителя (тот же протокол, что у партнёрского лендинга) ----
+  function sendHeight(){
+    var h=Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    try{ parent.postMessage({nimbLpHeight:h}, '*'); }catch(e){}
+  }
+  window.addEventListener('load', sendHeight);
+  window.addEventListener('resize', sendHeight);
+  // во встройке (iframe) прячем собственную прокрутку; standalone — оставляем рабочей
+  if(window.self!==window.top){
+    document.documentElement.style.overflow='hidden';
+    document.body.style.overflow='hidden';
+  }
 })();
 </script>
 </body>
